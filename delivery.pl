@@ -109,9 +109,10 @@ is_valid_format(plan(X)) :- is_valid_schedulelist_format(X).
 
 %is_valid(+P).
 is_valid(P) :-
-			is_valid_format(P), % Add Hard Constraints 2,3,4,5,6
+			is_valid_format(P), % Add Hard Constraints 2,3,4,5
 			schedule_every_vehicle_every_day(P),
-			order_at_most_once(P).
+			order_at_most_once(P),
+			plan_no_overload(P).
 
 
 % Hard Constraint 1 : Exactly one schedule for each vehicle for each working_day
@@ -161,4 +162,57 @@ order_list_route_once([H|T],Orders) :-
 			is_valid_depot(H),
 			!,
 			order_list_route_once(T,Orders).
+
+
+
+% Hard Constraint 3 : Only during working day.
+
+% Hard Constraint 4 : Only visit depot when empty
+
+% Hard Constraint 5 : Item only taken if it is still available.
+
+% Hard Constraint 6 : Vehicles can not take more weight than their capacity.
+
+%is_consecutive_order_route(Route,Orders).
+plan_no_overload(plan(Schedules)) :- schedule_not_overload(Schedules).
+
+schedule_not_overload([]).
+schedule_not_overload([schedule(Vid,_,R)|T]) :-
+			vehicle(Vid,_,C,_,_,_),
+			consecutive_orders_route(R,Orders),
+			max_load_orders(Orders,Max),
+			Max < C,
+			schedule_not_overload(T).
+
+max_load_orders([],0.0).
+max_load_orders([H|T],Max) :-
+			max_load_orders(T,OldMax),
+			load(H,Load),
+			Load > OldMax,
+			!,
+			Max = Load.
+max_load_orders([H|T],Max) :-
+			max_load_orders(T,OldMax),
+			load(H,Load),
+			Load =< OldMax,
+			!,
+			Max = OldMax.
+
+
+
+consecutive_orders_route([],[[]]).
+consecutive_orders_route([H|T],Orders) :-
+			is_valid_depot(H),
+			!,
+			consecutive_orders_route(T,NewOrders),
+			Orders = [[]|NewOrders].
+consecutive_orders_route([H|T],Orders) :-
+			is_valid_order(H),
+			!,
+			consecutive_orders_route(T,NewOrders),
+			[NO1|NO2] = NewOrders,
+			Orders2 = [H|NO1],
+			Orders = [Orders2|NO2].
+
+
 
