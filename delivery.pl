@@ -1,5 +1,6 @@
 %%% DRIVING_DURATION %%%
 
+%driving_duration(+VID,+FromID,+ToID,-Duration)
 driving_duration(VID,FromID,ToID,Duration) :-
 			vehicle(VID,_,_,Pace,_,_),
 			is_location(FromID,Floc),
@@ -15,6 +16,7 @@ is_location(ID,Location) :-
 
 %%% EARNING %%%
 
+%earning(+OID,+Day,-Value)
 earning(OID,Day,Value) :-
 			working_day(Day,_,_),
 			order(OID, OrderDetails, _, Deadline),
@@ -30,7 +32,7 @@ order_detail_value([Pid/Amount|R],Value) :-
 
 %%% LOAD %%%
 
-
+%load(+Os,-Weight)
 load([],0.0).
 load([OID|R],Weight) :-
 			order(OID,OrderDetails,_,_),
@@ -46,6 +48,7 @@ order_detail_weight([Pid/Amount|R],Weight) :-
 
 %%% UPDATE_INVENTORY %%%
 
+%update_inventory(+Inventory, ?OID, ?NewInventory)
 update_inventory(Inventory,OID,NewInventory) :-
 			order(OID,OrderDetails,_,_),
 			update_inventory_order_detail(Inventory,OrderDetails,NewInventory).
@@ -104,5 +107,58 @@ is_valid_format(plan(X)) :- is_valid_schedulelist_format(X).
 
 %%% IS_VALID %%%
 
+%is_valid(+P).
 is_valid(P) :-
-			is_valid_format(P). % Add Hard Constraints
+			is_valid_format(P), % Add Hard Constraints 2,3,4,5,6
+			schedule_every_vehicle_every_day(P),
+			order_at_most_once(P).
+
+
+% Hard Constraint 1 : Exactly one schedule for each vehicle for each working_day
+
+schedule_every_vehicle_every_day(plan(Schedules)) :-
+			findall(D,working_day(D,_,_),Days),
+			findall(V,is_valid_vehicle(V),Vs),
+			schedules_every_day_check(Schedules,Days,Vs).
+
+schedules_every_day_check(_,[],_):-!.
+schedules_every_day_check(Schedules, [Day|T], Vs) :-
+			schedules_every_vehicle_on_day(Schedules,Day,Vs),
+			schedules_every_day_check(Schedules,T,Vs).
+
+schedules_every_vehicle_on_day([],_,[]).
+schedules_every_vehicle_on_day([schedule(VID,Day,_)|T],Day,Vs) :-
+			!,
+			member(VID,Vs), !,
+			delete(Vs,VID,NewVs),
+			schedules_every_vehicle_on_day(T,Day,NewVs).
+schedules_every_vehicle_on_day([schedule(_,D,_)|T],Day,Vs) :-
+			D \= Day,
+			!,
+			schedules_every_vehicle_on_day(T,Day,Vs).
+
+% Hard Constraint 2 : Each order at most once.
+
+order_at_most_once(plan(Schedules)) :- no_duplicate_order_schedule(Schedules,[]).
+
+no_duplicate_order_schedule([],_).
+no_duplicate_order_schedule([schedule(_,_,R)|T],Delivered) :-
+			order_list_route_once(R,RouteDelivered),
+			intersection(Delivered,RouteDelivered,X),
+			length(X,0),
+			append(Delivered,RouteDelivered,NewDelivered),
+			no_duplicate_order_schedule(T,NewDelivered).
+
+
+order_list_route_once([],[]).
+order_list_route_once([H|T],Orders) :-
+			is_valid_order(H),
+			!,
+			order_list_route_once(T,NewOrders),
+			not(member(H,NewOrders)),
+			Orders = [H|NewOrders].
+order_list_route_once([H|T],Orders) :-
+			is_valid_depot(H),
+			!,
+			order_list_route_once(T,Orders).
+
