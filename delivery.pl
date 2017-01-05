@@ -109,10 +109,11 @@ is_valid_format(plan(X)) :- is_valid_schedulelist_format(X).
 
 %is_valid(+P).
 is_valid(P) :-
-			is_valid_format(P), % Add Hard Constraints 2,3,4,5
+			is_valid_format(P), % Add Hard Constraints 2,4,5
 			schedule_every_vehicle_every_day(P),
 			order_at_most_once(P),
-			plan_no_overload(P).
+			plan_no_overload(P),
+			no_overtime(P).
 
 
 % Hard Constraint 1 : Exactly one schedule for each vehicle for each working_day
@@ -167,13 +168,83 @@ order_list_route_once([H|T],Orders) :-
 
 % Hard Constraint 3 : Only during working day.
 
+no_overtime(plan(Schedules)) :- no_overtime(Schedules,Schedules).
+
+no_overtime([],_).
+no_overtime([H|T],Schedules) :- 
+			schedule_no_overtime(H,Schedules),
+			no_overtime(T,Schedules).
+
+schedule_no_overtime(schedule(Vid,Day,R),_) :-
+			not(previous_day(Day,_)),
+			!,
+			vehicle(Vid,StartId,_,_,_,_),
+			route_duration(Vid,R,StartId,Duration),
+			working_day(Day,StartTime,EndTime),
+			End is StartTime + Duration,
+			End =< EndTime.
+schedule_no_overtime(schedule(Vid,Day,R),Schedules) :-
+			previous_day(Day,NewDay),
+			!,
+			is_day_vehicle_schedule(NewDay,Vid,Schedules,S),
+			last_pos_id(S,StartId),
+			route_duration(Vid,R,StartId,Duration),
+			working_day(Day,StartTime,EndTime),
+			End is StartTime + Duration,
+			End =< EndTime.
+
+
+route_duration(Vid,R,StartId,Duration) :-
+			route_driving_duration(Vid,R,StartId,D1),
+			route_orders_duration(R,D2),
+			Duration is D1+D2.
+
+route_driving_duration(_,[],_,0.0) :- !.
+route_driving_duration(Vid,[H|T],PrecId,Duration) :-
+			route_driving_duration(Vid,T,H,D1),
+			driving_duration(Vid,PrecId,H,D2),
+			Duration is D1 + D2.
+
+route_orders_duration(R,Duration) :-
+			order_list_route_once(R,Orders),
+			length(Orders,Nb),
+			Duration is 10.0 * Nb.
+
+
+previous_day(2,1) :- working_day(1,_,_).
+previous_day(X,Y) :- X > 2, Y is X - 1, working_day(Y,_,_), !.
+previous_day(X,Z) :- X > 2, Y is X - 1, previous_day(Y,Z), !.
+
+
+is_day_vehicle_schedule(_,_,[],_) :- fail.
+is_day_vehicle_schedule(Day,Vid,[schedule(Vid,Day,R)|_],schedule(Vid,Day,R)) :- !.
+is_day_vehicle_schedule(Day,Vid,[schedule(_,D,_)|T],Schedule) :-
+			Day \= D,
+			!,
+			is_day_vehicle_schedule(Day,Vid,T,Schedule).
+is_day_vehicle_schedule(Day,Vid,[schedule(Id,_,_)|T],Schedule) :-
+			Vid \= Id,
+			!,
+			is_day_vehicle_schedule(Day,Vid,T,Schedule).
+
+
+last_pos_id(schedule(Vid,_,R),ID) :- last_pos_id(R,Vid,ID).
+
+last_pos_id([],Vid,ID) :- vehicle(Vid,ID,_,_,_,_).
+last_pos_id([H|[]],_,H) :- !.
+last_pos_id([_|T],Vid,ID) :-
+			T \= [],
+			!,
+			last_pos_id(T,Vid,ID).
+
+
+
+
 % Hard Constraint 4 : Only visit depot when empty
 
 % Hard Constraint 5 : Item only taken if it is still available.
 
 % Hard Constraint 6 : Vehicles can not take more weight than their capacity.
-
-%is_consecutive_order_route(Route,Orders).
 plan_no_overload(plan(Schedules)) :- schedule_not_overload(Schedules).
 
 schedule_not_overload([]).
@@ -213,6 +284,5 @@ consecutive_orders_route([H|T],Orders) :-
 			[NO1|NO2] = NewOrders,
 			Orders2 = [H|NO1],
 			Orders = [Orders2|NO2].
-
 
 
