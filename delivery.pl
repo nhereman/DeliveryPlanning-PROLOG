@@ -109,7 +109,7 @@ is_valid_format(plan(X)) :- is_valid_schedulelist_format(X).
 
 %is_valid(+P).
 is_valid(P) :-
-			is_valid_format(P), % Add Hard Constraints 4,5
+			is_valid_format(P),
 			schedule_every_vehicle_every_day(P),
 			order_at_most_once(P),
 			no_overtime(P),
@@ -242,6 +242,7 @@ last_pos_id([_|T],Vid,ID) :-
 
 
 % Hard Constraint 4 : Only visit depot when empty
+% => Implemented in Hard Constraint 5.
 
 % Hard Constraint 5 : Item only taken if it is still available.
 enough_inventory(plan(Schedules)) :-
@@ -333,4 +334,74 @@ consecutive_orders_route([H|T],Orders) :-
 			Orders2 = [H|NO1],
 			Orders = [Orders2|NO2].
 
+
+
+
+
+
+
+%%%%%%%%% PROFIT %%%%%%%%
+profit(P, Profit) :-
+			revenue(P,Revenue),
+			expenses(P,Expenses),
+			Profit is Revenue - Expenses.
+
+% Revenue
+revenue(plan(Schedules), Revenue) :- revenue(Schedules,Revenue).
+
+revenue([],0.0).
+revenue([H|T],Revenue) :-
+			schedule_revenue(H,R1),
+			revenue(T,R2),
+			Revenue is R1+R2.
+
+schedule_revenue(schedule(_,Day,R),Revenue) :-
+			order_list_route_once(R,Os),
+			order_list_revenue(Os,Day,Revenue).
+
+order_list_revenue([],_,0.0).
+order_list_revenue([H|T],Day, Revenue) :-
+			earning(H,Day,Val),
+			order_list_revenue(T,Day,NewRevenue),
+			Revenue is NewRevenue + Val.
+
+
+%Expenses
+expenses(plan(Schedules),Expenses) :- expenses(Schedules,Schedules,Expenses).
+
+expenses([],_,0.0).
+expenses([H|T], Schedules,Expenses) :-
+			schedule_expenses(H,Schedules,Exp1),
+			expenses(T,Schedules,Exp2),
+			Expenses is Exp1+Exp2.
+
+schedule_expenses(schedule(_,_,[]),_,0.0):-!.
+schedule_expenses(schedule(Vid,Day,R),_,Expenses) :-
+			R \= [],
+			not(previous_day(Day,_)),
+			!,
+			vehicle(Vid,StartId,_,_,UsageCost,_),
+			route_expenses(R,Vid,StartId,RouteExp),
+			Expenses is RouteExp + UsageCost.
+
+schedule_expenses(schedule(Vid,Day,R),Schedules,Expenses) :-
+			R \= [],
+			previous_day(Day,PrevDay),
+			!,
+			is_day_vehicle_schedule(PrevDay,Vid,Schedules,S),
+			vehicle(Vid,_,_,_,UsageCost,_),
+			last_pos_id(S,StartId),
+			route_expenses(R,Vid,StartId,RouteExp),
+			Expenses is RouteExp + UsageCost.
+
+
+route_expenses([],_,_,0.0).
+route_expenses([H|T],Vid,LastId,Expenses) :-
+			is_location(H,ToLoc),
+			is_location(LastId,FromLoc),
+			distance(ToLoc,FromLoc,Dist),
+			vehicle(Vid,_,_,_,_,KmCost),
+			Exp1 is KmCost * Dist,
+			route_expenses(T,Vid,H,Exp2),
+			Expenses is Exp1 + Exp2.
 
