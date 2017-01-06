@@ -109,11 +109,12 @@ is_valid_format(plan(X)) :- is_valid_schedulelist_format(X).
 
 %is_valid(+P).
 is_valid(P) :-
-			is_valid_format(P), % Add Hard Constraints 2,4,5
+			is_valid_format(P), % Add Hard Constraints 4,5
 			schedule_every_vehicle_every_day(P),
 			order_at_most_once(P),
-			plan_no_overload(P),
-			no_overtime(P).
+			no_overtime(P),
+			enough_inventory(P),
+			plan_no_overload(P).
 
 
 % Hard Constraint 1 : Exactly one schedule for each vehicle for each working_day
@@ -243,6 +244,53 @@ last_pos_id([_|T],Vid,ID) :-
 % Hard Constraint 4 : Only visit depot when empty
 
 % Hard Constraint 5 : Item only taken if it is still available.
+enough_inventory(plan(Schedules)) :-
+			findall(Did,depot(Did,_,_),Ds),
+			enough_inventory_all_depots(Ds,Schedules).
+
+enough_inventory_all_depots([],_).
+enough_inventory_all_depots([H|T],Schedules) :-
+			depot(H,Inventory,_),
+			findall(Oid,order_taken_in_depot(H,Schedules,Schedules,Oid),Os),
+			enough_inventory_all_orders(Inventory,Os),
+			enough_inventory_all_depots(T,Schedules).
+
+
+enough_inventory_all_orders(_,[]):- !.
+enough_inventory_all_orders(Inventory, [H|T]) :-
+			!,
+			update_inventory(Inventory,H,NewInventory),!,%%%%%%%% !!!! MOVE THIS CUT !!!!
+			enough_inventory_all_orders(NewInventory,T).
+
+
+order_taken_in_depot(Did,[H|T],Schedules,Oid) :-
+			order_taken_in_depot_schedule(Did,H,Schedules,Oid);
+			order_taken_in_depot(Did,T,Schedules,Oid).
+
+
+order_taken_in_depot_schedule(Did,schedule(Vid,Day,R),_,Oid) :-
+			not(previous_day(Day,_)),
+			!,
+			vehicle(Vid,StartId,_,_,_,_),
+			order_taken_in_depot_route(Did,R,StartId,Oid).
+order_taken_in_depot_schedule(Did,schedule(Vid,Day,R),Schedules,Oid) :-
+			previous_day(Day,PrevDay),
+			!,
+			is_day_vehicle_schedule(PrevDay,Vid,Schedules,S),
+			last_pos_id(S,StartId),
+			order_taken_in_depot_route(Did,R,StartId,Oid).
+
+order_taken_in_depot_route(_,[],_,_) :- !,fail.
+order_taken_in_depot_route(_,_,LastDid,_) :- not(is_valid_depot(LastDid)),!,fail.
+order_taken_in_depot_route(Did,[Oid|_],Did,Oid) :- is_valid_order(Oid).
+order_taken_in_depot_route(Did,[H|T],LastDid,Oid) :- 
+			is_valid_order(H),
+			order_taken_in_depot_route(Did,T,LastDid,Oid).
+order_taken_in_depot_route(Did,[H|T],_,Oid) :- 
+			is_valid_depot(H),
+			order_taken_in_depot_route(Did,T,H,Oid).
+
+
 
 % Hard Constraint 6 : Vehicles can not take more weight than their capacity.
 plan_no_overload(plan(Schedules)) :- schedule_not_overload(Schedules).
