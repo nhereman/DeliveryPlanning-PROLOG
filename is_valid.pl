@@ -1,4 +1,4 @@
-:- module(is_valid,[is_valid/1,previous_day/2,last_pos_id/2,is_day_vehicle_schedule/4 ,order_list_route_once/2]).
+:- module(is_valid,[is_valid/1,previous_day/2,last_pos_id/2,is_day_vehicle_schedule/4 ,order_list_route_once/2,order_taken_in_depot_route/4]).
 
 :- use_module(auxiliary,[driving_duration/4, distance/3, is_location/2, load/2,update_inventory/3]).
 
@@ -234,7 +234,7 @@ order_taken_in_depot_schedule(Did,schedule(Vid,Day,R),Schedules,Oid) :-
 			last_pos_id(S,StartId),
 			order_taken_in_depot_route(Did,R,StartId,Oid).
 
-% order_taken_in_depot_route(+Did,+Route,+Schedules,?Oid) -Oid is an order taken in depot Did in Schedule in the context of Schedules.
+% order_taken_in_depot_route(+Did,+Route,+LastDid,?Oid) -Oid is an order taken in depot Did in Route, where LastDid is the last depot visited.
 order_taken_in_depot_route(_,[],_,_) :- !,fail.
 order_taken_in_depot_route(_,_,LastDid,_) :- not(is_valid_depot(LastDid)),!,fail.
 order_taken_in_depot_route(Did,[Oid|_],Did,Oid) :- is_valid_order(Oid).
