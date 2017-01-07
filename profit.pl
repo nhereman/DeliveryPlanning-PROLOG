@@ -1,7 +1,7 @@
 :- module(profit,[profit/2, revenue/2, expenses/2]).
 
 :- use_module(auxiliary, [is_location/2,earning/3,distance/3]).
-:- use_module(is_valid,[last_pos_id/2,previous_day/2,is_day_vehicle_schedule/4,order_list_route_once/2]).
+:- use_module(utility,[last_pos_id/2,previous_day/2,is_day_vehicle_schedule/4,order_list_route_once/2]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %         PROFIT        %
