@@ -1,4 +1,4 @@
-:- module(profit,[profit/2, revenue/2, expenses/2]).
+:- module(profit,[profit/2, revenue/2, expenses/2,route_expenses/4,order_list_revenue/3]).
 
 :- use_module(auxiliary, [is_location/2,earning/3,distance/3]).
 :- use_module(utility,[last_pos_id/2,previous_day/2,is_day_vehicle_schedule/4,order_list_route_once/2]).
@@ -42,14 +42,14 @@ order_list_revenue([H|T],Day, Revenue) :-
 % expenses(+P, -Expenses) - Expenses are the expenses induced by plan P.
 expenses(plan(Schedules),Expenses) :- expenses(Schedules,Schedules,Expenses).
 
-% expenses(+Schedules, -Expenses) - Expenses are the expenses induced by Schedules.
+% expenses(+Schedules1,+Schedules,-Expenses) - Expenses are the expenses induced by Schedules1.
 expenses([],_,0.0).
 expenses([H|T], Schedules,Expenses) :-
 			schedule_expenses(H,Schedules,Exp1),
 			expenses(T,Schedules,Exp2),
 			Expenses is Exp1+Exp2.
 
-% schedule_expenses(+Schedule, -Expenses) - Expenses are the expenses induced by Schedule.
+% schedule_expenses(+Schedule,+Schedules,-Expenses) - Expenses are the expenses induced by Schedule.
 schedule_expenses(schedule(_,_,[]),_,0.0):-!.
 schedule_expenses(schedule(Vid,Day,R),_,Expenses) :-
 			R \= [],
@@ -68,7 +68,7 @@ schedule_expenses(schedule(Vid,Day,R),Schedules,Expenses) :-
 			route_expenses(R,Vid,StartId,RouteExp),
 			Expenses is RouteExp + UsageCost.
 
-% route_expenses(+R,+Vid, -Expenses) - Expenses are the expenses induced by the vehicule Vid driving route R (Ignoring UsageCost).
+% route_expenses(+R,+Vid,+LastId,-Expenses) - Expenses are the expenses induced by the vehicule Vid driving route R (Ignoring UsageCost).
 route_expenses([],_,_,0.0).
 route_expenses([H|T],Vid,LastId,Expenses) :-
 			is_location(H,ToLoc),

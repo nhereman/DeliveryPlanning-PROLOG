@@ -1,5 +1,7 @@
 :- module(utility,[previous_depot/4,previous_day/2,last_pos_id/2,is_day_vehicle_schedule/4,order_taken_in_depot_route/4,is_valid_vehicle/1,
-					is_working_day/1,is_valid_order/1,is_valid_depot/1,order_list_route_once/2]).
+					is_working_day/1,is_valid_order/1,is_valid_depot/1,order_list_route_once/2,route_duration/4]).
+
+:- use_module(auxiliary,[driving_duration/4]).
 
 % Some usefull predicates.
 
@@ -83,3 +85,23 @@ order_list_route_once([H|T],Orders) :-
 			is_valid_depot(H),
 			!,
 			order_list_route_once(T,Orders).
+
+
+% route_duration(+Vid, +R, +StartId, -Duration) - Duration is the duration of the route R done by vehicle Vid starting at StartId.
+route_duration(Vid,R,StartId,Duration) :-
+			route_driving_duration(Vid,R,StartId,D1),
+			route_orders_duration(R,D2),
+			Duration is D1+D2.
+
+% route_driving_duration(+Vid, +R, +PrecId, -Duration) - Duration is the driving duration of the route R bye vehicle Vid starting at PrecId.
+route_driving_duration(_,[],_,0.0) :- !.
+route_driving_duration(Vid,[H|T],PrecId,Duration) :-
+			route_driving_duration(Vid,T,H,D1),
+			driving_duration(Vid,PrecId,H,D2),
+			Duration is D1 + D2.
+
+% route_orders_duration(+R, -Duration) - Duration is the duration taken in route R to load and unload orders.
+route_orders_duration(R,Duration) :-
+			order_list_route_once(R,Orders),
+			length(Orders,Nb),
+			Duration is 10.0 * Nb.

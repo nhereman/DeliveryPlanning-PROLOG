@@ -4,4 +4,5 @@
 :- use_module('profit.pl').
 :- use_module('find_optimal.pl').
 :- use_module('pretty_print.pl').
+:- use_module('find_heuristically.pl').
 
