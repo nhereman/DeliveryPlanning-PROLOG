@@ -1,5 +1,5 @@
 :- module(utility,[previous_depot/4,previous_day/2,last_pos_id/2,is_day_vehicle_schedule/4,order_taken_in_depot_route/4,is_valid_vehicle/1,
-					is_working_day/1,is_valid_order/1,is_valid_depot/1,order_list_route_once/2,route_duration/4]).
+					is_working_day/1,is_valid_order/1,is_valid_depot/1,order_list_route_once/2,route_duration/4,following_orders_in_route/2]).
 
 :- use_module(auxiliary,[driving_duration/4]).
 
@@ -105,3 +105,17 @@ route_orders_duration(R,Duration) :-
 			order_list_route_once(R,Orders),
 			length(Orders,Nb),
 			Duration is 10.0 * Nb.
+
+
+
+% following_orders_in_route(+R,-Orders) - Orders are the list of orders before the next depot.
+following_orders_in_route([],[]).
+following_orders_in_route([H|_],Orders) :-
+			is_valid_depot(H),
+			!,
+			Orders = [].
+following_orders_in_route([H|T],Orders) :-
+			is_valid_order(H),
+			!,
+			following_orders_in_route(T,TempOrders),
+			Orders = [H|TempOrders].

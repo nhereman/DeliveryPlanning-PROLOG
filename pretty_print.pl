@@ -43,7 +43,7 @@ print_schedule(schedule(Vid,Day,Route),Schedules) :-
 			format("time\tLoc.\tload\taction\n"),
 			working_day(Day,StartTime,_),
 			previous_depot(Day,Vid,Schedules,StartPos),
-			findall(Oid,order_taken_in_depot_route(StartPos,Route,StartPos,Oid),Os), % Picking up first orders
+			following_orders_in_route(Route,Os), % Picking up first orders
 			load(Os,NewLoad),
 			length(Os,Length),
 			NewTime is StartTime + (Length*5),
@@ -82,7 +82,7 @@ print_route_action([H|T],Vid,Day,Time,Load,PosId,Schedules) :-
 			print_driving_action(Dist,ToLoc),
 			driving_duration(Vid,PosId,H,DrivingTime),
 			PickTime is Time + DrivingTime,
-			findall(Oid,order_taken_in_depot_route(H,T,H,Oid),Os), % Picking
+			following_orders_in_route(T,Os), % Picking
 			load(Os,NewLoad),
 			length(Os,Length),
 			NewTime is Time + (Length*5),

@@ -128,7 +128,7 @@ enough_inventory_all_depots([H|T],Schedules) :-
 enough_inventory_all_orders(_,[]):- !.
 enough_inventory_all_orders(Inventory, [H|T]) :-
 			!,
-			update_inventory(Inventory,H,NewInventory),!,%%%%%%%% !!!! MOVE THIS CUT !!!!
+			update_inventory(Inventory,H,NewInventory),!,
 			enough_inventory_all_orders(NewInventory,T).
 
 % order_taken_in_depot(+Did,+Schedules1,+Schedules,?Oid) - Oid is an order taken in depot Did in the Schedules1 where Schedules1 is included
