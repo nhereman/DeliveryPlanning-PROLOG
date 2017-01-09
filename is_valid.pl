@@ -150,39 +150,18 @@ plan_no_overload(plan(Schedules)) :- schedule_not_overload(Schedules).
 % schedule_not_overload(+Schedules) - True if in Schedules, vehicle never carry more than their capacity.
 schedule_not_overload([]).
 schedule_not_overload([schedule(Vid,_,R)|T]) :-
-			vehicle(Vid,_,C,_,_,_),
-			consecutive_orders_route(R,Orders),
-			max_load_orders(Orders,Max),
-			Max < C,
+			route_no_overload(R,Vid),
 			schedule_not_overload(T).
 
-% max_load_orders(+Orders,-Max) - Max is the maximum load between the load of all Orders.
-max_load_orders([],0.0).
-max_load_orders([H|T],Max) :-
-			max_load_orders(T,OldMax),
-			load(H,Load),
-			Load > OldMax,
+% route_no_overload(+Route,+Vid)
+route_no_overload([],_) :- !.
+route_no_overload(Route,Vid) :-
+			Route \= [],
 			!,
-			Max = Load.
-max_load_orders([H|T],Max) :-
-			max_load_orders(T,OldMax),
-			load(H,Load),
-			Load =< OldMax,
-			!,
-			Max = OldMax.
-
-
-% consecutive_orders_route(+R, -Orders) - Orders is the list of all list of consecutive orders shipped.
-consecutive_orders_route([],[[]]).
-consecutive_orders_route([H|T],Orders) :-
-			is_valid_depot(H),
-			!,
-			consecutive_orders_route(T,NewOrders),
-			Orders = [[]|NewOrders].
-consecutive_orders_route([H|T],Orders) :-
-			is_valid_order(H),
-			!,
-			consecutive_orders_route(T,NewOrders),
-			[NO1|NO2] = NewOrders,
-			Orders2 = [H|NO1],
-			Orders = [Orders2|NO2].
+			vehicle(Vid,_,C,_,_,_),
+			following_orders_in_route(Route,Orders),
+			load(Orders,Load),
+			Load =< C,
+			append(Orders,TempRoute,Route),
+			[_|NewRoute] = TempRoute,
+			route_no_overload(NewRoute,Vid).
