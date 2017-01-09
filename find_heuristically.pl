@@ -16,7 +16,8 @@ find_heuristically(plan(Schedules)) :-
 			sort(Days,SortedDays),
 			findall(Oid,order(Oid,_,_,_),Orders),
 			startingInventories(InvState),
-			heurist_schedule_days(SortedDays,Orders,InvState,[],Schedules).
+			heurist_schedule_days(SortedDays,Orders,InvState,[],Schedules),
+			is_valid(plan(Schedules)).
 
 
 
@@ -122,9 +123,9 @@ select_best_depot([H|T],InvState,RemainingOrders,CurrNbOrderBest,CurrBest,Best) 
 
 
 % update_remaining_orders(+Orders,+ToRemove,-RemainingOrders)
-update_remaining_orders(Orders,[],Orders).
+update_remaining_orders(Orders,[],Orders) :- !.
 update_remaining_orders(Orders,[H|T],RemainingOrders) :-
-			select(H,Orders,TempsOrders),
+			select(H,Orders,TempsOrders), !,
 			update_remaining_orders(TempsOrders,T,RemainingOrders).
 
 % depot_reachable_on_time(+Time,+Vid,+Day,+LastOrder,?Did) - True if depot Did is reachable before the end of Day.
@@ -209,11 +210,11 @@ startingInventories(Inventories) :- findall(Did/Inv,depot(Did,Inv,_),Inventories
 update_inventory_state(InvState,Did,Oid,NewState) :-
 			member(Did/Inv,InvState),
 			update_inventory(Inv,Oid,NewInv), !,
-			select(Did/Inv,InvState,TempState),
+			select(Did/Inv,InvState,TempState), !,
 			NewState = [Did/NewInv|TempState].
 
 % update_inventory_state_multiple(+InvState,+Did,+Orders,?NewState) - Update the state of inventories by removing all Orders from depot Did.
-update_inventory_state_multiple(InvState,_,[],InvState).
+update_inventory_state_multiple(InvState,_,[],InvState) :- !.
 update_inventory_state_multiple(InvState,Did,[H|T],NewState) :-
 			update_inventory_state(InvState,Did,H,TempState),
 			update_inventory_state_multiple(TempState,Did,T,NewState).
