@@ -1,0 +1,129 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage{xcolor}
+\usepackage{listings}
+
+
+\lstdefinestyle{DOS}
+{
+    backgroundcolor=\color{black},
+    basicstyle=\scriptsize\color{white}\ttfamily
+}
+
+\title{Declarative Programming \\User Manual}
+\author{Hereman Nicolas}
+\date{January 2017}
+
+\begin{document}
+
+\maketitle
+
+\section{Loading the program}
+
+In order to test all the predicates, the user can consult 'delivery.pl'. This file import all the modules.
+After that, the user has to load the data file he wants to use.
+
+\section{Available functionalities}
+
+The list of available predicates is :
+
+
+\begin{itemize}
+    \item driving\_duration(+VID,+FromID,+ToId,-Duration) (module auxiliary.pl)
+    \item earning(+OID,+Day,-Value) (module auxiliary.pl)
+    \item load(+Os,-Weight) (module auxiliary.pl)
+    \item update\_inventory(+Inventory,?OID,?NewInventory) (module auxiliary.pl)
+    \item is\_valid(+P) (module is\_valid.pl)
+    \item profit(+P,-Profit) (module profit.pl)
+    \item find\_heuristically(-P) (module find\_heuristically.pl)
+    \item pretty\_print(+P) (module pretty\_print.pl)
+\end{itemize}
+
+\textit{find\_optimal(-P)} is available but does not work. (module find\_optimal.pl)
+
+\newpage
+\section{Example with the multi\_small instance}
+
+\begin{lstlisting}[style=DOS]
+?- consult('delivery.pl').
+true.
+
+?- consult('instances/multi_small.pl').
+true.
+
+?- driving_duration(v1,d1,d2,240.0).
+true.
+
+?- load([o10],187.9).
+true.
+
+?- earning(o1,1,385.0).
+true.
+
+?- update_inventory([p1/50,p3/10,p2/10],o3,X).
+X = [p1/40, p3/10, p2/2].
+
+?- update_inventory([p1/50,p3/10,p2/10],X,[p1/40,p2/2,p3/10]).
+X = o3.
+
+?- is_valid(plan([schedule(v2,1,[o5,d2]),schedule(v1,1,[o2,d1]),schedule(v2,3
+,[o1,d1]),schedule(v1,3,[o3,d2])])).
+true.
+
+?- profit(plan([schedule(v2,1,[d2,d1]),schedule(v1,1,[]),schedule(v2,3,[]),
+schedule(v1,3,[])]),-280.0).
+true.
+
+?- find_heuristically(X).
+X = plan([schedule(v2, 3, [o7, d1]), schedule(v1, 3, [o4, d1]), schedule(v2,
+1, [o6, o5, d2, o8|...]), schedule(v1, 1, [o1, o9, d2])]).
+
+?- pretty_print(plan([schedule(v2,1,[o5,d2]),schedule(v1,1,[o2,d1]),schedule(
+v2,3,[o1,d1]),schedule(v1,3,[o3,d2])])).
+*** Schedule for Day 1 ***
+
+< Vehicle v1 >
+
+time	Loc.	load	action
+10:00	(50,150)	0.00kg	pick up order(s) o2 from depot d2
+10:05	(50,150)	200.00kg	Drive 75km to the location (75,100)
+11:35	(75,100)	200.00kg	Deliver order o2.
+11:40	(75,100)	0.00kg	Drive 125km to the location (150,50)
+11:40	(150,50)	0.00kg	Park at depot d1.
+
+< Vehicle v2 >
+
+time	Loc.	load	action
+10:00	(150,50)	0.00kg	pick up order(s) o5 from depot d1
+10:05	(150,50)	21.40kg	Drive 251km to the location (21,172)
+13:13	(21,172)	21.40kg	Deliver order o5.
+13:18	(21,172)	0.00kg	Drive 51km to the location (50,150)
+13:18	(50,150)	0.00kg	Park at depot d2.
+
+*** Schedule for Day 3 ***
+
+< Vehicle v1 >
+
+time	Loc.	load	action
+10:00	(150,50)	0.00kg	pick up order(s) o3 from depot d1
+10:05	(150,50)	161.00kg	Drive 225km to the location (41,166)
+14:35	(41,166)	161.00kg	Deliver order o3.
+14:40	(41,166)	0.00kg	Drive 25km to the location (50,150)
+14:40	(50,150)	0.00kg	Park at depot d2.
+
+< Vehicle v2 >
+
+time	Loc.	load	action
+10:00	(50,150)	0.00kg	pick up order(s) o1 from depot d2
+10:05	(50,150)	0.70kg	Drive 64km to the location (8,172)
+10:53	(8,172)	0.70kg	Deliver order o1.
+10:58	(8,172)	0.00kg	Drive 264km to the location (150,50)
+10:58	(150,50)	0.00kg	Park at depot d1.
+
+
+true.
+
+\end{lstlisting}
+
+\end{document}
