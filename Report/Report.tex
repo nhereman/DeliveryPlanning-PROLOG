@@ -1,0 +1,127 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Declarative Programming Report}
+\author{Hereman Nicolas}
+\date{January 2017}
+
+\begin{document}
+
+\maketitle
+
+\section{Description of the different approaches}
+
+\subsection{is\_valid(+P)}
+
+The predicate \textit{is\_valid/1} checks if the plan respects the format and all the hard constraints :
+
+\begin{enumerate}
+    \item All the vehicles are scheduled exactly once.
+    \item The orders are shipped at most once.
+    \item Vehicles start at the beginning of the working day and do not drive after after the end.
+    \item Vehicles do not carry products from depot to depot.
+    \item Vehicles only take orders in a depot if there is enough product.
+    \item Vehicles do not carry more products that their capacity allow them.
+\end{enumerate}
+
+\subsection{profit(+P,-Profit)}
+
+This predicate \textit{profit/2} computes the Profit of plan P by computing the revenue and the expenses.
+
+The revenue is the sum of the revenue of each schedule. The order of a schedule is computed with the predicate earning/3 applied to all the orders delivered.
+
+The expenses are the sum of all the expenses induced by each schedule. The expenses of a schedule is computed by computing the driving duration of his route and use it in the formula \textit{Distance * KmCost + UsageCost}.
+
+
+\subsection{find\_optimal(-P)}
+
+The predicate \textit{find\_optimal/1} finds a plan P which maximizes the profit.
+
+It makes use of dynamic predicate \textit{best/2} with \textit{assert/1} and \textit{retract/1} to keep trace of the best solution.
+
+\subsection{find\_heuristically(-P)}
+
+The predicate \textit{find\_heuristically/1} generate a valid plan P approximately maximizing the profit.
+
+The idea is to generate a schedule for every vehicle every day.
+In order to do this, we use a list of \textit{DepotId/Inventory} to keep track of the inventories and a list of orders not delivered yet. The schedules are generated day by day.
+
+To generate the route of a schedule, we get all the list of remaining orders from size 0 to 2 which can be picked up at the last depot and carried by the vehicle. We take the one which gives the best profit under the condition that it remains enough time to reach a depot. These orders are added to the route. The reachable depot which gives the most choice in orders is added to the route. Then we do it again until we can not reach a depot before the end of the day.
+
+\subsection{pretty\_print(+P)}
+
+The predicate \textit{pretty\_print(+P)} print the plan in a nicely readable way. It goes through each schedule and print all the action done during the route. It is the same print as the one in the slides.
+
+
+\subsection{Extended Functionality}
+
+The predicates \textit{is\_valid(?P)} and \textit{is\_optimal(?P)} were not implemented unfortunately.
+
+
+
+\section{Strengths and weaknesses}
+
+\subsection{Non-working predicates}
+
+Unfortunately, the predicate \textit{find\_optimal/1} doesn't work. It makes use of \textit{is\_valid(?P)} which is not implemented.
+
+The predicates \textit{update\_inventory/4} has one problem. In the case where all the amount of product "px" is taken it gives both solution : without "px" and with "px/0". This means that when a cut is needed to block useless backtracking, it is used after \textit{update\_inventory/4}. Otherwise, the predicate works perfectly.
+
+All the predicates except these two are working perfectly.
+
+\subsection{Quality of heuristic}
+
+The heuristic find a solution for every example but the result is far from the optimal. The profit found are positive except for two instance where the profit is zero.
+
+\subsection{Non-Functional Requirements}
+
+\subsubsection{Test in computer rooms}
+The code couldn't be tested on the computer rooms but there is not any reason for it to not work. It was tested on multiple version of SWI-prolog to make sure this kind of problem will not happen.
+
+\subsubsection{Generality}
+
+The code does not use any property of the instances so it should be as general as possible.
+
+\subsubsection{Procedural style}
+if-statements were avoided in the code. Asserts is only used for \textit{find\_optimal/1}. Cuts are used multiple time but it was to avoid unnecessary backtracking.
+
+\subsubsection{Modularity}
+
+The auxiliary predicates share a same module. Each predicate of the core has his own module.
+
+The module utility define some predicates use-full in the different core predicates. The module delivery import all the others.
+
+\subsubsection{Efficiency}
+All the predicates run in under 2 minutes on my laptop. It should be the same on the lab computers.
+
+
+
+\subsection{Experimental Results}
+
+\subsubsection{find\_optimal(-P)}
+As said in 2.1, the predicate \textit{find\_optimal/1} need \textit{is\_valid(?P)} to work. So there is no experimental results available.
+
+\subsubsection{find\_heuristically(-P)}
+
+Here are the results of \textit{find\_heuristically/1} on small and large instances :
+
+\begin{tabular}{|c|c|c|}
+    \hline
+     Instance & Profit (\$) & Time (s)  \\
+     \hline
+     single\_small & 785 & 0.026 \\
+     multi\_depots\_small & 798 & 0.014 \\
+     multi\_vehicles\_small & 796.4 & 0.03 \\
+     multi\_days\_small & 640 & 0.024 \\
+     multi\_small & 206.6 & 0.013 \\
+     \hline
+     single\_large & 3168.8 & 10.631 \\
+     multi\_depots\_large & 0 & 0 \\
+     multi\_vehicles\_large & 3526.6 & 25.043 \\
+     multi\_days\_large & 3189 & 26.768 \\
+     multi\_large & 0 & 0.004 \\
+     \hline
+\end{tabular}
+
+
+\end{document}
